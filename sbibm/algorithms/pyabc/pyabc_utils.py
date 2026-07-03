@@ -26,7 +26,12 @@ class PyAbcSimulator:
 
     def __call__(self, pyabc_parameter) -> Dict:
         parameters = torch.tensor(
-            [[pyabc_parameter[f"param{dim+1}"] for dim in range(self.dim_parameters)]],
+            [
+                [
+                    pyabc_parameter[f"param{dim + 1}"]
+                    for dim in range(self.dim_parameters)
+                ]
+            ],
             dtype=torch.float32,
         )
         data = self.simulator(parameters).numpy().squeeze()
@@ -43,7 +48,7 @@ def wrap_prior(task):
     Note: works only for a specific set of priors: Uniform, LogNormal, Normal.
     """
     log = logging.getLogger(__name__)
-    log.warn("Will discard any correlations in prior")
+    log.warning("Will discard any correlations in prior")
 
     bounds = {}
 
@@ -66,7 +71,7 @@ def wrap_prior(task):
             loc = prior_params["m"][dim]
             scale = np.sqrt(prior_params["C"][dim, dim])
 
-            prior_dict[f"param{dim+1}"] = pyabc.RV("norm", loc, scale)
+            prior_dict[f"param{dim + 1}"] = pyabc.RV("norm", loc, scale)
         prior = pyabc.Distribution(**prior_dict)
 
     elif "LogNormal" in prior_cls:
@@ -78,7 +83,7 @@ def wrap_prior(task):
 
         prior_dict = {}
         for dim in range(task.dim_parameters):
-            prior_dict[f"param{dim+1}"] = pyabc.RV(
+            prior_dict[f"param{dim + 1}"] = pyabc.RV(
                 "lognorm", s=prior_params["s"][dim], scale=prior_params["scale"][dim]
             )
 
@@ -93,7 +98,7 @@ def wrap_prior(task):
             loc = prior_params["low"][dim]
             scale = prior_params["high"][dim] - loc
 
-            prior_dict[f"param{dim+1}"] = pyabc.RV("uniform", loc, scale)
+            prior_dict[f"param{dim + 1}"] = pyabc.RV("uniform", loc, scale)
 
         prior = pyabc.Distribution(**prior_dict)
 
@@ -162,7 +167,7 @@ def run_pyabc(
     num_calls = history.total_nr_simulations
 
     if num_calls < 1.0 * num_simulations:
-        (particles_df, weights) = history.get_distribution(t=history.max_t)
+        particles_df, weights = history.get_distribution(t=history.max_t)
         particles = torch.as_tensor(particles_df.values, dtype=torch.float32)
         weights = torch.as_tensor(weights, dtype=torch.float32)
     else:
@@ -170,7 +175,7 @@ def run_pyabc(
             log.info(
                 f"Last population exceeded budget by {num_calls - num_simulations}."
             )
-            (particles_df, weights) = history.get_distribution(t=history.max_t - 1)
+            particles_df, weights = history.get_distribution(t=history.max_t - 1)
             old_particles = torch.as_tensor(particles_df.values, dtype=torch.float32)
             old_weights = torch.as_tensor(weights, dtype=torch.float32)
             if use_last_pop_samples:
@@ -183,10 +188,10 @@ def run_pyabc(
                     np.ceil(proportion_over_budget * pyabc_kwargs["population_size"])
                 )
                 log.info(
-                    f"Filling up with {num_old_particles+1} samples from previous population."
+                    f"Filling up with {num_old_particles + 1} samples from previous population."
                 )
                 # Combining populations.
-                (particles_df, weights) = history.get_distribution(t=history.max_t)
+                particles_df, weights = history.get_distribution(t=history.max_t)
                 new_particles = torch.as_tensor(
                     particles_df.values, dtype=torch.float32
                 )

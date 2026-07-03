@@ -11,7 +11,7 @@ authors = [
     { name = "Jan-Matthis Lueckmann", email = "mail@jan-matthis.de" },
     { name = "Jan Boelts", email = "jan.boelts@mailbox.org" }
 ]
-requires-python = ">=3.7"
+requires-python = ">=3.12"
 license = { text = "MIT" }
 classifiers = [
     "License :: OSI Approved :: MIT License",
@@ -28,6 +28,8 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
     "autograd",
@@ -41,11 +43,12 @@ dependencies = [
     "pandas>=1.0.0",
     "pyabc>=0.10.8",
     "pyabcranger>=0.0.48",
-    "sbi>=0.20.0,<0.22.0",
+    "sbi>=0.25.0",
     "pyro-ppl",
     "scikit-learn",
     "torch>=1.8.0",
     "tqdm",
+    "gpy>=1.13.2",
 ]
 
 [project.optional-dependencies]

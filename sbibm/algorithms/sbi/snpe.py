@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 
 import torch
 from sbi import inference as inference
-from sbi.utils.get_nn_models import posterior_nn
+from sbi.neural_nets import posterior_nn
 
 from sbibm.algorithms.sbi.utils import (
     wrap_posterior,
@@ -67,11 +67,11 @@ def run(
 
     if simulation_batch_size > num_simulations_per_round:
         simulation_batch_size = num_simulations_per_round
-        log.warn("Reduced simulation_batch_size to num_simulation_per_round")
+        log.warning("Reduced simulation_batch_size to num_simulation_per_round")
 
     if training_batch_size > num_simulations_per_round:
         training_batch_size = num_simulations_per_round
-        log.warn("Reduced training_batch_size to num_simulation_per_round")
+        log.warning("Reduced training_batch_size to num_simulation_per_round")
 
     prior = task.get_prior_dist()
     if observation is None:

@@ -8,7 +8,7 @@ from sbibm.tasks.task import Task
 
 def build_prior(task: Task, model: elfi.ElfiModel):
     log = logging.getLogger(__name__)
-    log.warn("Will discard any correlations in prior")
+    log.warning("Will discard any correlations in prior")
 
     bounds = {}
 

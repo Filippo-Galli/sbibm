@@ -4,8 +4,7 @@ from typing import Any, Dict, Optional
 
 import torch
 from pyro.infer.mcmc import HMC, NUTS
-from sbi.samplers.mcmc.mcmc import MCMC
-from sbi.samplers.mcmc.slice import Slice
+from pyro.infer.mcmc.api import MCMC
 
 import sbibm
 from sbibm.algorithms.pyro.utils.tensorboard import (
@@ -27,7 +26,7 @@ def run(
     observation: Optional[torch.Tensor] = None,
     num_chains: int = 10,
     num_warmup: int = 10000,
-    kernel: str = "slice",
+    kernel: str = "nuts",
     kernel_parameters: Optional[Dict[str, Any]] = None,
     thinning: int = 1,
     diagnostics: bool = True,
@@ -117,7 +116,13 @@ def run(
         mcmc_kernel = HMC(model=conditioned_model, **kernel_parameters)
 
     elif kernel.lower() == "slice":
-        mcmc_kernel = Slice(model=conditioned_model, **kernel_parameters)
+        raise NotImplementedError(
+            "kernel='slice' relied on sbi's internal `sbi.samplers.mcmc.slice.Slice` "
+            "wrapper, which no longer exists in current sbi releases and has no "
+            "Pyro-native replacement (Pyro only ships HMC and NUTS kernels). "
+            "Use kernel='nuts' or kernel='hmc' instead, or pin an older sbi version "
+            "if you specifically need the slice sampler."
+        )
 
     else:
         raise NotImplementedError
@@ -128,11 +133,22 @@ def run(
     else:
         initial_params = None
 
+    # Pyro's native MCMC() has no `available_cpu` kwarg: it decides whether to run
+    # chains in parallel by comparing num_chains against (cpu_count() - 1) itself.
+    # We still honor the caller's `available_cpu` explicitly, to keep the old
+    # behavior of never requesting more parallel chains than available.
+    if num_chains > available_cpu:
+        log.info(
+            f"num_chains={num_chains} exceeds available_cpu={available_cpu}; "
+            f"capping num_chains at {available_cpu}."
+        )
+        num_chains = available_cpu
+
     mcmc_parameters = {
         "num_chains": num_chains,
         "num_samples": thinning * num_samples,
         "warmup_steps": num_warmup,
-        "available_cpu": available_cpu,
+        "mp_context": mp_context,
         "initial_params": initial_params,
     }
     log.info(
@@ -146,7 +162,7 @@ def run(
     mcmc.run()
 
     toc = time.time()
-    log.info(f"Finished MCMC after {toc-tic:.3f} seconds")
+    log.info(f"Finished MCMC after {toc - tic:.3f} seconds")
     log.info(f"Automatic transforms {mcmc.transforms}")
 
     log.info(f"Apply thinning of {thinning}")

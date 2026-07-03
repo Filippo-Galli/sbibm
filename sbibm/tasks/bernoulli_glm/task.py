@@ -177,8 +177,17 @@ class BernoulliGLM(Task):
             psi = np.dot(X, sample)
             w = np.array([pg.pgdraw(1, b) for b in psi])
             O = np.diag(w)  # noqa: E741
-            V = np.linalg.inv(np.dot(np.dot(X.T, O), X) + Binv)
-            m = np.dot(V, np.dot(X.T, obs.reshape(-1) - 1 * 0.5))
+            V = np.linalg.inv(
+                np.dot(np.dot(X.permute(*torch.arange(X.ndim - 1, -1, -1)), O), X)
+                + Binv
+            )
+            m = np.dot(
+                V,
+                np.dot(
+                    X.permute(*torch.arange(X.ndim - 1, -1, -1)),
+                    obs.reshape(-1) - 1 * 0.5,
+                ),
+            )
             sample = np.random.multivariate_normal(np.ravel(m), V)
             samples.append(sample)
         samples = np.asarray(samples).astype(np.float32)

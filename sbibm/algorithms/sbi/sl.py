@@ -45,34 +45,73 @@ class SynthLikNet(nn.Module):
     def forward(self, *args, **kwargs):
         raise NotImplementedError
 
-    def log_prob(self, inputs: Tensor, context=Optional[Tensor]) -> Tensor:
-        thetas = context
-        observation = inputs
+    def log_prob(
+        self,
+        inputs: Tensor,
+        condition: Optional[Tensor] = None,
+        **kwargs: Any,
+    ) -> Tensor:
+        if condition is None:
+            raise ValueError("`condition` must be provided.")
 
-        log_probs = []
-        for i in range(thetas.shape[0]):
-            xs = self.simulator(
-                thetas[i, :].reshape(1, -1).repeat(self.num_simulations_per_step, 1)
+        thetas = condition  # (batch_dim, dim_theta)
+        x = inputs
+
+        if thetas.ndim == 1:
+            thetas = thetas.unsqueeze(0)
+
+        # sbi convention:
+        # inputs: (sample_dim, batch_dim, event_dim) or (batch_dim, event_dim)
+        if x.ndim == 2:
+            x = x.unsqueeze(0)  # -> (1, batch_dim, event_dim)
+        elif x.ndim != 3:
+            raise ValueError(
+                f"`inputs` must have ndim 2 or 3, got {x.ndim} with shape {x.shape}."
             )
 
-            # Estimate mean
-            m = torch.mean(xs, dim=0)
+        sample_dim, batch_dim, dim_x = x.shape
 
-            # estimate covariance using unbiased sample variance
+        if thetas.shape[0] != batch_dim:
+            raise ValueError(
+                f"Mismatched batch sizes: inputs has batch {batch_dim}, "
+                f"condition has batch {thetas.shape[0]}."
+            )
+
+        log_probs = []
+        for i in range(batch_dim):
+            theta_i = thetas[i].reshape(1, -1)
+
+            xs = self.simulator(theta_i.repeat(self.num_simulations_per_step, 1))
+            if xs.ndim == 1:
+                xs = xs.unsqueeze(-1)
+            elif xs.ndim > 2:
+                xs = xs.reshape(xs.shape[0], -1)
+
+            m = xs.mean(dim=0)
             xm = xs - m
-            S = torch.matmul(xm.T, xm) / (xs.shape[0] - 1)
-            S = S + self.diag_eps * torch.eye(xs.shape[1])
+            S = xm.T @ xm / (xs.shape[0] - 1)
+            S = S + self.diag_eps * torch.eye(
+                xs.shape[1], device=xs.device, dtype=xs.dtype
+            )
 
-            # Score observations
+            if dim_x != m.shape[-1]:
+                raise ValueError(
+                    f"Observation event dim {dim_x} does not match synthetic "
+                    f"likelihood dim {m.shape[-1]} for batch {i}."
+                )
+
             dist = torch.distributions.MultivariateNormal(
                 loc=m,
                 covariance_matrix=S,
-                validate_args=False,  # to discard expensive check for psd'ness
+                validate_args=False,
             )
 
-            log_probs.append(dist.log_prob(observation[i, :].reshape(1, -1)))
+            # x[:, i, :] has shape (sample_dim, dim_x)
+            log_prob_i = dist.log_prob(x[:, i, :])  # shape: (sample_dim,)
+            log_probs.append(log_prob_i)
 
-        return torch.cat(log_probs)
+        # stack over batch dimension -> (sample_dim, batch_dim)
+        return torch.stack(log_probs, dim=1)
 
     def sample(self, *args, **kwargs):
         raise NotImplementedError

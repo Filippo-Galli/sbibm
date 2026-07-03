@@ -53,7 +53,7 @@ class TestKGauss(unittest.TestCase):
             loop_grad = np.zeros((n, d))
             for i in range(n):
                 for j in range(d):
-                    loop_grad[i, j] = k.gradX_Y(X[[i], :], Y[[i], :], j)
+                    loop_grad[i, j] = k.gradX_Y(X[[i], :], Y[[i], :], j).item()
 
             testing.assert_almost_equal(pair_grad, loop_grad)
 

@@ -121,3 +121,7 @@ venv.bak/
 # mypy
 .mypy_cache/
 .autoenv.zsh
+
+# Denenv 
+.direnv/
+.devenv

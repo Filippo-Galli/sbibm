@@ -21,7 +21,7 @@ def mvn_kl_pq(
 
     try:
         X_mean = torch.mean(X, axis=0)
-        X_cov = cov(X.T)
+        X_cov = cov(X.permute(*torch.arange(X.ndim - 1, -1, -1)))
 
         Y_mean = torch.mean(Y, axis=0)
         Y_cov = cov(Y.T)

@@ -83,7 +83,8 @@ class SLCP(Task):
 
             m = torch.stack(
                 (parameters[:, [0]].squeeze(), parameters[:, [1]].squeeze())
-            ).T
+            )
+            m = m.permute(*torch.arange(m.ndim - 1, -1, -1))
             if m.dim() == 1:
                 m.unsqueeze_(0)
 
@@ -92,10 +93,10 @@ class SLCP(Task):
             rho = torch.nn.Tanh()(parameters[:, [4]]).squeeze()
 
             S = torch.empty((num_samples, 2, 2))
-            S[:, 0, 0] = s1 ** 2
+            S[:, 0, 0] = s1**2
             S[:, 0, 1] = rho * s1 * s2
             S[:, 1, 0] = rho * s1 * s2
-            S[:, 1, 1] = s2 ** 2
+            S[:, 1, 1] = s2**2
 
             # Add eps to diagonal to ensure PSD
             eps = 0.000001
@@ -116,13 +117,13 @@ class SLCP(Task):
             else:
                 data = pyro.sample("data", data_dist).reshape((num_samples, 8))
 
-                gmm = torch.load(self.path / "files" / "gmm.torch")
+                gmm = torch.load(self.path / "files" / "gmm.torch", weights_only=False)
                 noise = gmm.sample((num_samples,)).type(data.dtype)
 
                 data_and_noise = torch.cat([data, noise], dim=1)
 
                 permutation_idx = torch.load(
-                    self.path / "files" / "permutation_idx.torch"
+                    self.path / "files" / "permutation_idx.torch", weights_only=False
                 )
 
                 return data_and_noise[:, permutation_idx]
@@ -296,7 +297,6 @@ class SLCP(Task):
 
 
 if __name__ == "__main__":
-
     task = SLCP()
     # task._generate_noise_dist_parameters()
     task._setup()

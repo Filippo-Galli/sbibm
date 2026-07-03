@@ -13,7 +13,7 @@ def tb_plot_posterior(
 ):
     if type(samples) == torch.Tensor:
         samples = samples.numpy()
-    fig, _ = pairplot(samples.squeeze(), points=[])
+    fig, _ = pairplot(samples.squeeze(), points=None)
     writer.add_figure(f"{tag}", fig, close=True)
 
 

@@ -41,7 +41,7 @@ def run(
     logging.basicConfig(level=logging.INFO)
 
     log = logging.getLogger(__name__)
-    log.warn("ELFI is not fully supported yet!")
+    log.warning("ELFI is not fully supported yet!")
 
     # Initialize model object
     m = elfi.ElfiModel()
